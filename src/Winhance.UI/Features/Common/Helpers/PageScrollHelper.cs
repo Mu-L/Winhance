@@ -31,9 +31,9 @@ internal static class PageScrollHelper
 {
     /// <summary>
     /// Fraction of the viewport a single PageUp/PageDown press scrolls.
-    /// 0.9 preserves visual context (same convention as browsers and document viewers).
+    /// Kept small so content with only modest overflow doesn't jump straight to the end.
     /// </summary>
-    private const double PageStepFraction = 0.9;
+    private const double PageStepFraction = 0.15;
 
     /// <summary>
     /// Attaches fast-scroll handling to <paramref name="keyEventSource"/> for the
