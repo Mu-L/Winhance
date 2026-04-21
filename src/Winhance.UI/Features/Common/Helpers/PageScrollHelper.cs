@@ -37,20 +37,45 @@ internal static class PageScrollHelper
 
     /// <summary>
     /// Attaches fast-scroll handling to <paramref name="keyEventSource"/> for the
-    /// given <paramref name="scrollView"/>. The handler is registered with
-    /// <c>handledEventsToo: true</c> so we still observe PageUp/PageDown after an
-    /// inner ListView marks them handled during focus traversal.
+    /// given <paramref name="scrollView"/>.
+    ///
+    /// Why PreviewKeyDown: the inner ListView's built-in key handling reacts to
+    /// PageUp/PageDown by moving focus to the first/last item in the viewport,
+    /// which raises <c>BringIntoViewRequested</c> and makes the outer ScrollView
+    /// jump to the top/bottom — the exact emergent behavior we're trying to
+    /// replace. A bubbling (KeyDown) handler would see the event only AFTER
+    /// the ListView has already performed that focus change, so by then it's
+    /// too late to prevent the jump. PreviewKeyDown tunnels root → target, so
+    /// we can set <c>e.Handled = true</c> before the ListView's own key handler
+    /// gets a chance to run.
+    ///
+    /// We also keep a bubbling KeyDown handler with <c>handledEventsToo: true</c>
+    /// as a belt-and-braces fallback for guard paths (e.g. nested ScrollViewer)
+    /// where Preview returns without handling — but in practice the Preview path
+    /// is what does the real work.
     /// </summary>
     /// <param name="keyEventSource">
-    /// The element whose <c>KeyDown</c> event we subscribe to. Typically the Page
-    /// or UserControl root, so the handler sees keys regardless of which descendant
-    /// has focus.
+    /// The element whose <c>PreviewKeyDown</c>/<c>KeyDown</c> events we subscribe
+    /// to. Typically the Page or UserControl root, so the handler sees keys
+    /// regardless of which descendant has focus.
     /// </param>
     /// <param name="scrollView">The outer <see cref="ScrollView"/> to scroll.</param>
     public static void Attach(UIElement keyEventSource, ScrollView scrollView)
     {
         if (keyEventSource == null || scrollView == null) return;
 
+        // Tunneling handler — fires BEFORE any descendant's KeyDown. This is how
+        // we stop the ListView from converting PageUp/PageDown into
+        // first-item/last-item focus traversal (which would otherwise scroll
+        // the outer ScrollView to the top/bottom via BringIntoViewRequested).
+        keyEventSource.AddHandler(
+            UIElement.PreviewKeyDownEvent,
+            new KeyEventHandler((s, e) => HandleKey(scrollView, e)),
+            handledEventsToo: true);
+
+        // Bubbling fallback — covers the case where focus is on the ScrollView
+        // itself (or another element that doesn't route through the preview
+        // chain as we expect) and the key would otherwise be unhandled.
         keyEventSource.AddHandler(
             UIElement.KeyDownEvent,
             new KeyEventHandler((s, e) => HandleKey(scrollView, e)),
