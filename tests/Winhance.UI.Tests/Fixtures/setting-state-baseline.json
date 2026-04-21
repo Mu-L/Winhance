@@ -120,7 +120,7 @@
     "InputType": "Toggle"
   },
   "explorer-context-menu-windows-terminal": {
-    "Recommended": null,
+    "Recommended": 1,
     "Default": null,
     "InputType": "Toggle"
   },
@@ -193,7 +193,7 @@
     "InputType": "Selection"
   },
   "explorer-customization-folder-tips": {
-    "Recommended": null,
+    "Recommended": 1,
     "Default": null,
     "InputType": "Toggle"
   },
@@ -208,7 +208,7 @@
     "InputType": "Toggle"
   },
   "explorer-customization-hide-empty-drives": {
-    "Recommended": null,
+    "Recommended": 1,
     "Default": null,
     "InputType": "Toggle"
   },
@@ -315,7 +315,7 @@
     "InputType": "Toggle"
   },
   "explorer-customization-netplwiz-auto-login": {
-    "Recommended": 0,
+    "Recommended": 2,
     "Default": 2,
     "InputType": "Toggle"
   },
@@ -363,7 +363,7 @@
   "explorer-customization-shortcut-arrow": {
     "Recommended": {
       "kind": "index",
-      "value": 0
+      "value": 1
     },
     "Default": {
       "kind": "index",
@@ -388,7 +388,7 @@
     "InputType": "Toggle"
   },
   "explorer-customization-show-drive-letters": {
-    "Recommended": null,
+    "Recommended": 1,
     "Default": null,
     "InputType": "Toggle"
   },
@@ -405,6 +405,11 @@
   "explorer-customization-show-hidden-files": {
     "Recommended": 1,
     "Default": 0,
+    "InputType": "Toggle"
+  },
+  "explorer-customization-show-lnk-extension": {
+    "Recommended": 1,
+    "Default": "",
     "InputType": "Toggle"
   },
   "explorer-customization-show-menus": {
@@ -454,7 +459,7 @@
     "InputType": "Toggle"
   },
   "explorer-take-ownership": {
-    "Recommended": null,
+    "Recommended": 1,
     "Default": null,
     "InputType": "Toggle"
   },
@@ -554,12 +559,12 @@
     "InputType": "Toggle"
   },
   "gaming-disable-mpo": {
-    "Recommended": null,
+    "Recommended": 1,
     "Default": null,
     "InputType": "Toggle"
   },
   "gaming-disable-mpo-min-fps": {
-    "Recommended": null,
+    "Recommended": 1,
     "Default": null,
     "InputType": "Toggle"
   },
@@ -692,7 +697,7 @@
     "InputType": "Selection"
   },
   "gaming-nagle-algorithm": {
-    "Recommended": null,
+    "Recommended": 1,
     "Default": null,
     "InputType": "Toggle"
   },
@@ -744,7 +749,7 @@
     "InputType": "Toggle"
   },
   "gaming-performance-desktop-composition": {
-    "Recommended": null,
+    "Recommended": 1,
     "Default": null,
     "InputType": "Toggle"
   },
@@ -2059,11 +2064,11 @@
   "taskbar-button-size": {
     "Recommended": {
       "kind": "index",
-      "value": 0
+      "value": 1
     },
     "Default": {
       "kind": "index",
-      "value": 0
+      "value": 1
     },
     "InputType": "Selection"
   },
@@ -2115,7 +2120,10 @@
     "InputType": "Toggle"
   },
   "taskbar-extended-hover-time": {
-    "Recommended": null,
+    "Recommended": {
+      "kind": "index",
+      "value": 0
+    },
     "Default": {
       "kind": "index",
       "value": 5
@@ -2243,7 +2251,7 @@
     "InputType": "Selection"
   },
   "theme-transparency": {
-    "Recommended": 1,
+    "Recommended": 0,
     "Default": 1,
     "InputType": "Toggle"
   },

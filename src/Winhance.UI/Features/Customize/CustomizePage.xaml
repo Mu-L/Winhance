@@ -251,7 +251,7 @@
                         VerticalAlignment="Center"/>
 
                     <!-- Overview Cards -->
-                    <ScrollView Visibility="{x:Bind ViewModel.IsNotLoading}">
+                    <ScrollView x:Name="OverviewScrollView" Visibility="{x:Bind ViewModel.IsNotLoading}">
                         <!-- Wrap StackPanel in Grid to avoid visual glitches with MaxWidth -->
                         <Grid>
                         <StackPanel Spacing="8" MaxWidth="{StaticResource SettingsContentMaxWidth}" Margin="{StaticResource SettingsContentMargin}" HorizontalAlignment="Stretch" Padding="0,12,0,12">

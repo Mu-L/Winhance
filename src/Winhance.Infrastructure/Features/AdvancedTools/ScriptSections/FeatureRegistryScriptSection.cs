@@ -68,9 +68,17 @@ internal class FeatureRegistryScriptSection
                     hasEntriesForCurrentHive = true;
                 }
 
-                if (!isHkcu && settingDef.PowerShellScripts?.Count > 0)
+                if (settingDef.PowerShellScripts?.Count > 0)
                 {
-                    hasEntriesForCurrentHive = true;
+                    foreach (var ps in settingDef.PowerShellScripts)
+                    {
+                        bool psIsUser = ps.RunContext == RunContext.User;
+                        if (psIsUser == isHkcu)
+                        {
+                            hasEntriesForCurrentHive = true;
+                            break;
+                        }
+                    }
                 }
 
                 if (!isHkcu && settingDef.Id == "power-hibernation-enable")
@@ -116,14 +124,24 @@ internal class FeatureRegistryScriptSection
                     _registryEmitter.AppendSelectionCommandsFiltered(sb, settingDef, configItem, isHkcu, indent);
                 }
 
-                // Emit PowerShell scripts for this setting (system pass only)
-                if (!isHkcu && settingDef.PowerShellScripts?.Count > 0)
+                // Emit PowerShell scripts whose RunContext matches the current pass.
+                if (settingDef.PowerShellScripts?.Count > 0)
                 {
                     foreach (var scriptSetting in settingDef.PowerShellScripts)
                     {
-                        // For Selection types with Script on options, resolve which script to use from the selected index
-                        var useEnabled = configItem.IsSelected == true;
-                        if (settingDef.InputType == InputType.Selection
+                        bool scriptIsUser = scriptSetting.RunContext == RunContext.User;
+                        if (scriptIsUser != isHkcu)
+                        {
+                            continue;
+                        }
+
+                        // Custom state (user-entered values) always counts as "enabled" — the user
+                        // picking Custom DNS is expressing intent to configure, not to reset.
+                        bool hasCustomState = configItem.CustomStateValues?.Any() == true;
+                        var useEnabled = hasCustomState || configItem.IsSelected == true;
+
+                        if (!hasCustomState
+                            && settingDef.InputType == InputType.Selection
                             && settingDef.ComboBox?.Options is { } selScriptOptions
                             && configItem.SelectedIndex.HasValue
                             && configItem.SelectedIndex.Value >= 0
@@ -135,15 +153,36 @@ internal class FeatureRegistryScriptSection
 
                         var script = useEnabled ? scriptSetting.EnabledScript : scriptSetting.DisabledScript;
 
-                        // Substitute ScriptVariables placeholders for the selected index
-                        if (!string.IsNullOrEmpty(script)
-                            && settingDef.ComboBox?.Options is { } selVarOptions
-                            && configItem.SelectedIndex.HasValue
-                            && configItem.SelectedIndex.Value >= 0
-                            && configItem.SelectedIndex.Value < selVarOptions.Count
-                            && selVarOptions[configItem.SelectedIndex.Value].ScriptVariables is { } variables)
+                        // Placeholder substitution. Merge sources with CustomStateValues winning
+                        // so a user-entered "Custom" selection overrides any preset option.
+                        if (!string.IsNullOrEmpty(script))
                         {
-                            foreach (var kvp in variables)
+                            var placeholders = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+                            if (settingDef.ComboBox?.Options is { } selVarOptions
+                                && configItem.SelectedIndex.HasValue
+                                && configItem.SelectedIndex.Value >= 0
+                                && configItem.SelectedIndex.Value < selVarOptions.Count
+                                && selVarOptions[configItem.SelectedIndex.Value].ScriptVariables is { } variables)
+                            {
+                                foreach (var kvp in variables)
+                                {
+                                    placeholders[kvp.Key] = kvp.Value;
+                                }
+                            }
+
+                            if (configItem.CustomStateValues is { } customValues)
+                            {
+                                foreach (var kvp in customValues)
+                                {
+                                    if (kvp.Value != null)
+                                    {
+                                        placeholders[kvp.Key] = kvp.Value.ToString() ?? string.Empty;
+                                    }
+                                }
+                            }
+
+                            foreach (var kvp in placeholders)
                             {
                                 script = script.Replace($"{{{{{kvp.Key}}}}}", kvp.Value);
                             }

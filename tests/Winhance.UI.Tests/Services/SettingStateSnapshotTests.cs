@@ -97,7 +97,16 @@ public class SettingStateSnapshotTests
                 if (options[i].IsRecommended) return new { kind = "index", value = i };
             return null;
         }
-        return s.RegistrySettings?.FirstOrDefault()?.RecommendedValue;
+        // Toggle/CheckBox recommendation is declared either per-key on RegistrySetting.RecommendedValue
+        // OR at the setting level on SettingDefinition.RecommendedToggleState. The baseline (generated
+        // pre-refactor from the shipped Winhance_Recommended_Config) only captured *positive*
+        // recommendations — toggles whose recommended state was OFF surfaced as null there. Mirror
+        // that: fall back to RecommendedToggleState only when it's true (recommended-on → 1).
+        // RecommendedToggleState=false stays null so we don't diverge from the frozen fixture.
+        var perKey = s.RegistrySettings?.FirstOrDefault()?.RecommendedValue;
+        if (perKey != null) return perKey;
+        if (s.RecommendedToggleState == true) return 1;
+        return null;
     }
 
     private static object? ResolveDefault(SettingDefinition s)

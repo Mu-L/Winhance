@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Input;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.UI.Features.Common.Helpers;
 using Winhance.UI.Features.Optimize.ViewModels;
 
 namespace Winhance.UI.Features.Common.Controls;
@@ -58,6 +59,11 @@ public sealed partial class SettingsListView : UserControl
     {
         this.InitializeComponent();
         SettingsListViewControl.LosingFocus += ListView_LosingFocus;
+
+        // Wire PageUp/PageDown fast-scroll and Home/End jump on the outer ScrollView.
+        // Listening on the UserControl root lets us see the key even after the inner
+        // ListView marks it handled during focus traversal (issue #581).
+        PageScrollHelper.Attach(this, ContentScrollView);
     }
 
     /// <summary>

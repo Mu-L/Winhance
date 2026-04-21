@@ -1565,7 +1565,20 @@ public partial class SettingItemViewModel : BaseViewModel
     private void ShowRestartBannerIfNeeded()
     {
         var banner = _statusBannerManager.GetRestartBanner(SettingDefinition, _hasChangedThisSession);
-        if (banner.HasValue) ApplyBanner(banner.Value);
+        if (!banner.HasValue) return;
+
+        // Do not overwrite an existing option-warning banner (Error severity) with the
+        // generic restart-required message. The option warning is more important because
+        // it tells the user *why* the change is potentially dangerous; the restart-required
+        // hint is generic and duplicated across many settings. If an Error banner is already
+        // present (e.g. from ComputeBannerForValue for a Warning-flagged ComboBox option),
+        // keep it visible.
+        if (StatusBannerSeverity == InfoBarSeverity.Error && !string.IsNullOrEmpty(StatusBannerMessage))
+        {
+            return;
+        }
+
+        ApplyBanner(banner.Value);
     }
 
     private void ApplyBanner(SettingStatusBannerManager.BannerState state)

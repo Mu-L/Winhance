@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using FluentAssertions;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
@@ -136,6 +137,62 @@ public class SettingCatalogValidatorTests
                 $"{id} is Selection - {reg.ValueName ?? "(key-level)"} RecommendedValue must be null (resolved via ComboBoxOption.ValueMappings)");
             reg.DefaultValue.Should().BeNull(
                 $"{id} is Selection - {reg.ValueName ?? "(key-level)"} DefaultValue must be null (resolved via ComboBoxOption.ValueMappings)");
+        }
+    }
+
+    // Autounattend emits each RegContentSetting into exactly one pass (SYSTEM or user) based on its
+    // section headers. A single block mixing hives would be silently truncated under the hive
+    // filter, so authors must split into separate RegContentSetting entries per hive.
+    private static readonly Regex s_hkcuHeader = new(
+        @"^\s*\[HKEY_CURRENT_USER\\",
+        RegexOptions.Multiline | RegexOptions.IgnoreCase);
+    private static readonly Regex s_systemHiveHeader = new(
+        @"^\s*\[(HKEY_LOCAL_MACHINE|HKEY_CLASSES_ROOT|HKEY_USERS|HKEY_CURRENT_CONFIG)\\",
+        RegexOptions.Multiline | RegexOptions.IgnoreCase);
+
+    [Theory]
+    [MemberData(nameof(AllSettings))]
+    public void RegContents_DoNotMixHives(string id, SettingDefinition s)
+    {
+        if (s.RegContents is null) return;
+        foreach (var rc in s.RegContents)
+        {
+            foreach (var content in new[] { rc.EnabledContent, rc.DisabledContent })
+            {
+                if (string.IsNullOrEmpty(content)) continue;
+                bool hasHkcu = s_hkcuHeader.IsMatch(content);
+                bool hasSystem = s_systemHiveHeader.IsMatch(content);
+                (hasHkcu && hasSystem).Should().BeFalse(
+                    $"{id} RegContentSetting mixes HKEY_CURRENT_USER and system-hive section headers " +
+                    $"in a single block. Split into one RegContentSetting per hive so each can be " +
+                    $"routed to the correct autounattend pass.");
+            }
+        }
+    }
+
+    // PowerShellScripts with RunContext.System cannot touch HKCU (runs as SYSTEM in specialize pass
+    // where HKCU resolves to SYSTEM's empty profile hive). Catches future drift where someone adds
+    // an HKCU-touching script without marking it RunContext.User.
+    [Theory]
+    [MemberData(nameof(AllSettings))]
+    public void PowerShellScripts_HkcuReferences_MustDeclareUserRunContext(string id, SettingDefinition s)
+    {
+        if (s.PowerShellScripts is null) return;
+        foreach (var ps in s.PowerShellScripts)
+        {
+            foreach (var script in new[] { ps.EnabledScript, ps.DisabledScript, ps.Script })
+            {
+                if (string.IsNullOrEmpty(script)) continue;
+                bool touchesHkcu =
+                    script.Contains("HKCU:", System.StringComparison.OrdinalIgnoreCase)
+                    || script.Contains("HKEY_CURRENT_USER", System.StringComparison.OrdinalIgnoreCase);
+                if (touchesHkcu)
+                {
+                    ps.RunContext.Should().Be(RunContext.User,
+                        $"{id} PowerShellScript references HKCU but is marked RunContext.System. " +
+                        $"It would run as SYSTEM in specialize pass where HKCU is not the user's hive.");
+                }
+            }
         }
     }
 }

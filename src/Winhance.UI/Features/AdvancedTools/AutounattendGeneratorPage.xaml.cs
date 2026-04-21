@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using Winhance.UI.Features.AdvancedTools.ViewModels;
+using Winhance.UI.Features.Common.Helpers;
 
 namespace Winhance.UI.Features.AdvancedTools;
 
@@ -17,6 +18,9 @@ public sealed partial class AutounattendGeneratorPage : Page
     {
         this.InitializeComponent();
         ViewModel = App.Services.GetRequiredService<AutounattendGeneratorViewModel>();
+
+        // PageUp/PageDown fast-scroll + Home/End jump (issue #581).
+        PageScrollHelper.Attach(this, PageScrollView);
     }
 
     protected override void OnNavigatedTo(NavigationEventArgs e)

@@ -49,7 +49,7 @@ public class AppUninstallService(
                 return UninstallMethod.Chocolatey;
 
             case DetectionSource.Registry:
-                var (regFound, _) = await GetUninstallStringAsync(item.Name).ConfigureAwait(false);
+                var (regFound, _) = await GetUninstallStringAsync(item).ConfigureAwait(false);
                 if (regFound)
                     return UninstallMethod.Registry;
                 break;
@@ -69,7 +69,7 @@ public class AppUninstallService(
                 return UninstallMethod.Chocolatey;
         }
 
-        var (found, _2) = await GetUninstallStringAsync(item.Name).ConfigureAwait(false);
+        var (found, _2) = await GetUninstallStringAsync(item).ConfigureAwait(false);
         if (found)
             return UninstallMethod.Registry;
 
@@ -177,7 +177,7 @@ public class AppUninstallService(
     {
         try
         {
-            var (found, uninstallString) = await GetUninstallStringAsync(item.Name).ConfigureAwait(false);
+            var (found, uninstallString) = await GetUninstallStringAsync(item).ConfigureAwait(false);
 
             if (!found || string.IsNullOrWhiteSpace(uninstallString))
             {
@@ -256,7 +256,7 @@ public class AppUninstallService(
         }
     }
 
-    private async Task<(bool Found, string UninstallString)> GetUninstallStringAsync(string displayName)
+    private async Task<(bool Found, string UninstallString)> GetUninstallStringAsync(ItemDefinition item)
     {
         return await Task.Run(() =>
         {
@@ -299,14 +299,39 @@ public class AppUninstallService(
                             if (subKey == null) continue;
 
                             var regDisplayName = subKey.GetValue("DisplayName")?.ToString();
-                            if (string.IsNullOrEmpty(regDisplayName)) continue;
 
-                            if (IsFuzzyMatch(displayName, regDisplayName))
+                            // Prefer explicit definition patterns when provided (e.g. AutoHotkey v1's
+                            // "AutoHotkey 1.{version}"), since item.Name ("AutoHotkey v1") won't
+                            // fuzzy-match the actual registry DisplayName ("AutoHotkey 1.1.37.02").
+                            bool matched = false;
+
+                            if (!string.IsNullOrEmpty(item.RegistrySubKeyName)
+                                && AppStatusDiscoveryService.MatchesPattern(subKeyName, item.RegistrySubKeyName!))
+                            {
+                                matched = true;
+                            }
+
+                            if (!matched
+                                && !string.IsNullOrEmpty(item.RegistryDisplayName)
+                                && !string.IsNullOrEmpty(regDisplayName)
+                                && AppStatusDiscoveryService.MatchesPattern(regDisplayName!, item.RegistryDisplayName!))
+                            {
+                                matched = true;
+                            }
+
+                            if (!matched
+                                && !string.IsNullOrEmpty(regDisplayName)
+                                && IsFuzzyMatch(item.Name, regDisplayName!))
+                            {
+                                matched = true;
+                            }
+
+                            if (matched)
                             {
                                 var uninstallString = subKey.GetValue("UninstallString")?.ToString();
                                 if (!string.IsNullOrEmpty(uninstallString))
                                 {
-                                    logService.LogInformation($"Found uninstall string for {displayName}: {uninstallString}");
+                                    logService.LogInformation($"Found uninstall string for {item.Name}: {uninstallString}");
                                     return (true, uninstallString);
                                 }
                             }

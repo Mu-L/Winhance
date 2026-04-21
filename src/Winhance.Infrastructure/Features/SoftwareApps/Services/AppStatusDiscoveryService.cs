@@ -349,6 +349,9 @@ public class AppStatusDiscoveryService(
         {
             int wingetCount = 0, chocoCount = 0, appxCount = 0, registryCount = 0, fileSystemCount = 0;
 
+            // Fetched lazily below and reused in Phase 4 to avoid a second registry scan.
+            RegistryUninstallInfo? sharedRegInfo = null;
+
             // Phase 1: WinGet detection for apps with WinGetPackageId or MsStoreId
             var appsWithWinGetId = definitionList
                 .Where(d => (d.WinGetPackageId != null && d.WinGetPackageId.Any()) || !string.IsNullOrEmpty(d.MsStoreId))
@@ -360,11 +363,44 @@ public class AppStatusDiscoveryService(
 
                 if (winGetIds != null)
                 {
+                    // If any Phase 1 app also carries a registry disambiguator, pull the registry
+                    // uninstall info up front so we can require winget+registry agreement below.
+                    // WinGet's installed-package list can false-positive when a sibling build
+                    // (e.g. AutoHotkey v1 installed via direct URL) shares the vendor's uninstall
+                    // entry that winget uses to fingerprint "AutoHotkey.AutoHotkey" (v2).
+                    bool needRegistryDisambiguation = appsWithWinGetId.Any(d =>
+                        !string.IsNullOrEmpty(d.RegistryDisplayName) || !string.IsNullOrEmpty(d.RegistrySubKeyName));
+                    if (needRegistryDisambiguation)
+                    {
+                        sharedRegInfo = await GetRegistryUninstallInfoAsync().ConfigureAwait(false);
+                    }
+
                     foreach (var def in appsWithWinGetId)
                     {
                         var matchedById = def.WinGetPackageId?.Any(pkgId => winGetIds.Contains(pkgId)) == true;
                         var matchedByStoreId = !string.IsNullOrEmpty(def.MsStoreId) && winGetIds.Contains(def.MsStoreId);
                         bool isInstalled = matchedById || matchedByStoreId;
+
+                        // When the definition provides registry fingerprints, require registry
+                        // agreement to accept a WinGet match. Rejected items fall through to
+                        // later phases rather than being marked installed on a false positive.
+                        if (isInstalled && sharedRegInfo != null &&
+                            (!string.IsNullOrEmpty(def.RegistryDisplayName) || !string.IsNullOrEmpty(def.RegistrySubKeyName)))
+                        {
+                            bool registryAgrees =
+                                (!string.IsNullOrEmpty(def.RegistryDisplayName)
+                                    && sharedRegInfo.DisplayNames.Any(dn => MatchesPattern(dn, def.RegistryDisplayName!)))
+                                || (!string.IsNullOrEmpty(def.RegistrySubKeyName)
+                                    && sharedRegInfo.AllKeyNames.Any(k => MatchesPattern(k, def.RegistrySubKeyName!)));
+
+                            if (!registryAgrees)
+                            {
+                                logService.LogInformation(
+                                    $"WinGet reported {def.Name} installed, but registry fingerprint did not match - treating as false positive");
+                                isInstalled = false;
+                            }
+                        }
+
                         result[def.Id] = isInstalled;
 
                         if (isInstalled)
@@ -452,7 +488,7 @@ public class AppStatusDiscoveryService(
 
             if (appsForRegistryCheck.Any())
             {
-                var regInfo = await GetRegistryUninstallInfoAsync().ConfigureAwait(false);
+                var regInfo = sharedRegInfo ?? await GetRegistryUninstallInfoAsync().ConfigureAwait(false);
 
                 // Pass 1: Exact def.Name match against KeyNames
                 foreach (var def in appsForRegistryCheck.Where(d => !result.ContainsKey(d.Id) || !result[d.Id]))

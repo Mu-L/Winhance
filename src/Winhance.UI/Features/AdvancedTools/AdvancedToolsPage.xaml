@@ -103,7 +103,7 @@
             <Grid>
                 <!-- Overview Content (visible when not on detail page) -->
                 <Grid x:Name="OverviewContent">
-                    <ScrollView>
+                    <ScrollView x:Name="OverviewScrollView">
                         <!-- Wrap StackPanel in Grid to avoid visual glitches with MaxWidth -->
                         <Grid>
                         <StackPanel Spacing="8" MaxWidth="{StaticResource SettingsContentMaxWidth}" Margin="{StaticResource SettingsContentMargin}" HorizontalAlignment="Stretch" Padding="0,12,0,12">

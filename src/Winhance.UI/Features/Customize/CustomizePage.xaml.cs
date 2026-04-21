@@ -64,6 +64,9 @@ public sealed partial class CustomizePage : Page
             StartupLogger.Log("CustomizePage", "Constructor starting...");
             this.InitializeComponent();
             StartupLogger.Log("CustomizePage", "InitializeComponent done, getting ViewModel...");
+
+            // PageUp/PageDown fast-scroll + Home/End jump for the overview scroller (issue #581).
+            PageScrollHelper.Attach(this, OverviewScrollView);
             ViewModel = App.Services.GetRequiredService<CustomizeViewModel>();
             ViewModel.PropertyChanged += OnViewModelPropertyChanged;
             UpdateBreadcrumbMenuItems();

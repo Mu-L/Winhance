@@ -36,6 +36,8 @@ public class AutounattendScriptBuilder
         UnifiedConfigurationFile config,
         IReadOnlyDictionary<string, IEnumerable<SettingDefinition>> allSettings)
     {
+        WarnOnUnreachableNativePowerApiSettings(config, allSettings);
+
         var sb = new StringBuilder();
 
         // 1. Header and setup
@@ -124,6 +126,48 @@ public class AutounattendScriptBuilder
         }
 
         return scriptContent;
+    }
+
+    /// <summary>
+    /// NativePowerApiSettings are applied via a managed Win32 API at runtime (see
+    /// SettingOperationExecutor) and have no emitter in the autounattend pipeline. A setting
+    /// whose only applicable payload is NativePowerApi would silently be skipped in an unattend
+    /// install. Warn loudly so the author notices before shipping.
+    /// </summary>
+    private void WarnOnUnreachableNativePowerApiSettings(
+        UnifiedConfigurationFile config,
+        IReadOnlyDictionary<string, IEnumerable<SettingDefinition>> allSettings)
+    {
+        var selectedIds = new HashSet<string>(
+            config.Optimize.Features.SelectMany(f => f.Value.Items.Select(i => i.Id))
+                .Concat(config.Customize.Features.SelectMany(f => f.Value.Items.Select(i => i.Id))),
+            StringComparer.OrdinalIgnoreCase);
+
+        foreach (var group in allSettings)
+        {
+            foreach (var settingDef in group.Value)
+            {
+                if (!selectedIds.Contains(settingDef.Id)) continue;
+                if (settingDef.NativePowerApiSettings?.Count is not > 0) continue;
+
+                bool hasAutounattendFallback =
+                    settingDef.RegistrySettings?.Count > 0
+                    || settingDef.PowerCfgSettings?.Any() == true
+                    || settingDef.PowerShellScripts?.Count > 0
+                    || settingDef.RegContents?.Count > 0
+                    || settingDef.ScheduledTaskSettings?.Count > 0
+                    || settingDef.Id == "power-hibernation-enable";
+
+                if (!hasAutounattendFallback)
+                {
+                    _logService.Log(
+                        LogLevel.Warning,
+                        $"Setting '{settingDef.Id}' is applied only via NativePowerApiSettings, " +
+                        $"which has no autounattend emitter. It will be silently skipped during " +
+                        $"unattend install. Add a RegistrySettings or PowerCfgSettings fallback.");
+                }
+            }
+        }
     }
 
     private static void AppendCustomScriptPlaceholder(StringBuilder sb, string indent, string scopeLabel)

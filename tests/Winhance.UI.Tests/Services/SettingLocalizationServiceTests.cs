@@ -538,6 +538,41 @@ public class SettingLocalizationServiceTests
         result.Should().BeNull();
     }
 
+    // --- WSearch-style: DisplayName IS a localization key AND Warning is set ---
+
+    [Fact]
+    public void LocalizeSetting_ComboBoxOption_WithServiceOptionDisplayName_PreservesWarning()
+    {
+        // Mirrors WSearch: DisplayName = "ServiceOption_Disabled" (localization key), Warning set.
+        _localizationService.Setup(l => l.GetString("ServiceOption_Disabled"))
+            .Returns("Disabled");
+        // No Setting_{id}_OptionWarning_{i} key -> fallback to raw Warning string.
+
+        var sut = CreateSut();
+        var setting = CreateTestSetting(id: "gaming-windows-search-service",
+            comboBox: new ComboBoxMetadata
+            {
+                Options = new[]
+                {
+                    new Winhance.Core.Features.Common.Models.ComboBoxOption
+                    {
+                        DisplayName = "ServiceOption_Disabled",
+                        Warning = "WARNING: Disabling WSearch breaks Outlook search."
+                    },
+                    new Winhance.Core.Features.Common.Models.ComboBoxOption
+                    {
+                        DisplayName = "ServiceOption_ManualRecommended"
+                    }
+                }
+            });
+
+        var result = sut.LocalizeSetting(setting);
+
+        result.ComboBox.Should().NotBeNull();
+        result.ComboBox!.Options![0].DisplayName.Should().Be("Disabled");
+        result.ComboBox.Options[0].Warning.Should().Be("WARNING: Disabling WSearch breaks Outlook search.");
+    }
+
     // --- Immutability of original setting ---
 
     [Fact]

@@ -146,6 +146,39 @@ public static partial class ExternalAppDefinitions
                         {
                             DownloadUrl = "https://www.winstep.net/nexus.zip",
                         }
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-autohotkey-v2",
+                        Name = "AutoHotkey v2",
+                        Description = "Free macro-creation and automation scripting language (v2, current)",
+                        // v1 and v2 share SubKeyName "AutoHotkey"; only DisplayName can
+                        // distinguish them. v1 writes "AutoHotkey 1.x.y.z", v2 writes
+                        // exactly "AutoHotkey". No {version} token here — exact match.
+                        RegistryDisplayName = "AutoHotkey",
+                        GroupName = "Customization Utilities",
+                        WinGetPackageId = ["AutoHotkey.AutoHotkey"],
+                        ChocoPackageId = "autohotkey",
+                        MsStoreId = "9PLQFDG8HH9D",
+                        WebsiteUrl = "https://www.autohotkey.com/",
+                        ExternalApp = new ExternalAppMetadata
+                        {
+                            DownloadUrl = "https://www.autohotkey.com/download/ahk-v2.exe",
+                        }
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-autohotkey-v1",
+                        Name = "AutoHotkey v1",
+                        Description = "Legacy branch of AutoHotkey (v1.1) for older scripts",
+                        RegistryDisplayName = "AutoHotkey 1.{version}",
+                        GroupName = "Customization Utilities",
+                        WebsiteUrl = "https://www.autohotkey.com/",
+                        ExternalApp = new ExternalAppMetadata
+                        {
+                            DownloadUrl = "https://www.autohotkey.com/download/ahk-install.exe",
+                            RequiresDirectDownload = true,
+                        }
                     }
                 }
             };

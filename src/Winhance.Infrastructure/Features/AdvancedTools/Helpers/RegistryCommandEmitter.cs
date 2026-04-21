@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
@@ -217,6 +218,25 @@ internal class RegistryCommandEmitter
         }
     }
 
+    // Matches .reg section headers like `[HKEY_CURRENT_USER\Software\...]` at the start of a line.
+    // Headers are the only syntactic indicator of target hive in a .reg file — comments and REG_SZ
+    // values can contain "HKCU" as plain text without affecting import behavior.
+    private static readonly Regex s_hkcuHeaderRegex = new(
+        @"^\s*\[HKEY_CURRENT_USER\\",
+        RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.IgnoreCase);
+
+    private static readonly Regex s_systemHiveHeaderRegex = new(
+        @"^\s*\[(HKEY_LOCAL_MACHINE|HKEY_CLASSES_ROOT|HKEY_USERS|HKEY_CURRENT_CONFIG)\\",
+        RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.IgnoreCase);
+
+    internal static bool RegContentTargetsHkcu(string content)
+        => !string.IsNullOrEmpty(content) && s_hkcuHeaderRegex.IsMatch(content);
+
+    internal static bool RegContentMixesHives(string content)
+        => !string.IsNullOrEmpty(content)
+           && s_hkcuHeaderRegex.IsMatch(content)
+           && s_systemHiveHeaderRegex.IsMatch(content);
+
     public void AppendRegContentCommands(StringBuilder sb, SettingDefinition setting, bool? isEnabled, bool isHkcuPass, string indent = "")
     {
         if (setting.RegContents?.Count == 0) return;
@@ -230,12 +250,22 @@ internal class RegistryCommandEmitter
 
             if (string.IsNullOrEmpty(content)) continue;
 
-            // Determine if this content belongs in the current pass (System vs User)
-            // We check for HKEY_CURRENT_USER usage to identify User-specific content
-            bool isHkcuContent = content.IndexOf("HKEY_CURRENT_USER", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                                 content.IndexOf("HKCU", StringComparison.OrdinalIgnoreCase) >= 0;
+            // Reject mixed-hive blocks: the emitter routes to a single pass per block, so a block
+            // containing both HKCU and HKLM/HKCR/HKU/HKCC headers would silently lose half its
+            // content under the hive filter below. Authors must split such content into separate
+            // RegContentSetting entries.
+            if (RegContentMixesHives(content))
+            {
+                throw new InvalidOperationException(
+                    $"RegContentSetting for '{setting.Id}' mixes HKEY_CURRENT_USER and system-hive " +
+                    $"section headers in a single block. Split it into one RegContentSetting per hive " +
+                    $"so each can be routed to the correct autounattend pass.");
+            }
 
-            if (isHkcuContent != isHkcuPass)
+            // Determine pass by inspecting .reg section headers only (lines like
+            // `[HKEY_CURRENT_USER\...]`). Scanning raw text caught false positives when
+            // "HKCU" appeared in a comment or REG_SZ value.
+            if (RegContentTargetsHkcu(content) != isHkcuPass)
                 continue;
 
             sb.AppendLine($"{indent}try {{");

@@ -976,6 +976,7 @@ public static class GamingAndPerformanceOptimizations
                             EnabledScript = @"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses @('{{primary}}','{{secondary}}') }",
                             DisabledScript = @"Get-NetAdapter | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ResetServerAddresses }",
                             RequiresElevation = true,
+                            RunContext = RunContext.User,
                         },
                     },
                 },
@@ -1197,7 +1198,7 @@ public static class GamingAndPerformanceOptimizations
                     Id = "gaming-sysmain-service",
                     IsSubjectivePreference = true,
                     Name = "SysMain Service (Superfetch)",
-                    Description = "Preload frequently used applications into RAM for faster launch times. Automatic is recommended for HDDs, Manual or Disabled is preferred for SSDs",
+                    Description = "Preload frequently used applications into RAM for faster launch times. Automatic is recommended for HDD or mixed-storage systems; Manual or Disabled is only suitable for SSD-only systems",
                     GroupName = "System Services",
                     Icon = "Cached",
                     InputType = InputType.Selection,
@@ -1210,6 +1211,7 @@ public static class GamingAndPerformanceOptimizations
                             {
                                 DisplayName = "Disabled (Recommended for SSD)",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 4 },
+                                Warning = "WARNING: Disabling SysMain on systems with a traditional hard drive (HDD) can noticeably reduce responsiveness and slow app launches. Recommended only for SSD-only systems.",
                                 IsRecommended = true,
                             },
                             new ComboBoxOption
@@ -1275,7 +1277,7 @@ public static class GamingAndPerformanceOptimizations
                     Id = "gaming-windows-search-service",
                     IsSubjectivePreference = true,
                     Name = "Windows Search Indexing Service",
-                    Description = "Indexes files and folders for faster search results. Disabling reduces background CPU and disk activity but makes Windows Search slower",
+                    Description = "Indexes files and folders for faster search results. Disabling reduces background CPU and disk activity but breaks Outlook search and makes Start Menu and File Explorer search slow or unreliable",
                     GroupName = "System Services",
                     Icon = "DatabaseSearch",
                     InputType = InputType.Selection,
@@ -1288,6 +1290,7 @@ public static class GamingAndPerformanceOptimizations
                             {
                                 DisplayName = "ServiceOption_Disabled",
                                 ValueMappings = new Dictionary<string, object?> { ["Start"] = 4 },
+                                Warning = "WARNING: Disabling WSearch stops file content indexing. Outlook search, Start Menu search, and File Explorer search will become slow or return no results until re-enabled.",
                             },
                             new ComboBoxOption
                             {

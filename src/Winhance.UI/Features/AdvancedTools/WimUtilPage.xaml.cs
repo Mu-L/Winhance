@@ -6,6 +6,7 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Microsoft.UI.Xaml.Navigation;
 using Winhance.UI.Features.AdvancedTools.ViewModels;
+using Winhance.UI.Features.Common.Helpers;
 
 namespace Winhance.UI.Features.AdvancedTools;
 
@@ -22,6 +23,9 @@ public sealed partial class WimUtilPage : Page
         ViewModel = App.Services.GetRequiredService<WimUtilViewModel>();
         ActualThemeChanged += (_, _) => UpdateWinhanceXmlCardIcon();
         UpdateWinhanceXmlCardIcon();
+
+        // PageUp/PageDown fast-scroll + Home/End jump (issue #581).
+        PageScrollHelper.Attach(this, PageScrollView);
     }
 
     private void UpdateWinhanceXmlCardIcon()

@@ -247,6 +247,17 @@ public static partial class ExternalAppDefinitions
                     },
                     new ItemDefinition
                     {
+                        Id = "external-app-losslesscut",
+                        Name = "LosslessCut",
+                        Description = "Cross-platform FFmpeg GUI for fast, lossless video/audio trimming",
+                        RegistryDisplayName = "LosslessCut",
+                        GroupName = "Multimedia (Audio & Video)",
+                        WinGetPackageId = ["ch.LosslessCut"],
+                        ChocoPackageId = "lossless-cut",
+                        WebsiteUrl = "https://github.com/mifi/lossless-cut"
+                    },
+                    new ItemDefinition
+                    {
                         Id = "external-app-fxsound",
                         Name = "FxSound",
                         Description = "Audio enhancer for boosting sound quality on Windows",

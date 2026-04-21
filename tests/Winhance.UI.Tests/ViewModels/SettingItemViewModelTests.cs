@@ -227,6 +227,48 @@ public class SettingItemViewModelTests : IDisposable
     }
 
     [Fact]
+    public void UpdateStatusBanner_WithOptionWarning_SetsErrorBanner()
+    {
+        // Arrange: selection setting where option 0 has a Warning string.
+        var settingDef = new SettingDefinition
+        {
+            Id = "gaming-windows-search-service",
+            Name = "Windows Search Indexing Service",
+            Description = "desc",
+            InputType = InputType.Selection,
+            ComboBox = new ComboBoxMetadata
+            {
+                Options = new[]
+                {
+                    new Winhance.Core.Features.Common.Models.ComboBoxOption
+                    {
+                        DisplayName = "Disabled",
+                        Warning = "WARNING: Disabling WSearch breaks Outlook search."
+                    },
+                    new Winhance.Core.Features.Common.Models.ComboBoxOption
+                    {
+                        DisplayName = "Manual"
+                    }
+                }
+            }
+        };
+        var config = _defaultConfig with
+        {
+            SettingDefinition = settingDef,
+            SettingId = settingDef.Id,
+            InputType = InputType.Selection
+        };
+        var sut = CreateSut(config);
+
+        // Act: user selects the Warning-flagged option (index 0).
+        sut.UpdateStatusBanner(0);
+
+        // Assert: Error banner with the option Warning message.
+        sut.StatusBannerMessage.Should().Be("WARNING: Disabling WSearch breaks Outlook search.");
+        sut.StatusBannerSeverity.Should().Be(Microsoft.UI.Xaml.Controls.InfoBarSeverity.Error);
+    }
+
+    [Fact]
     public void HasTechnicalDetails_ReturnsFalseWhenEmpty()
     {
         var sut = CreateSut();
