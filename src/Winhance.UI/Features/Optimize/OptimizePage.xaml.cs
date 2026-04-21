@@ -71,6 +71,9 @@ public sealed partial class OptimizePage : Page
             StartupLogger.Log("OptimizePage", "Constructor starting...");
             this.InitializeComponent();
             StartupLogger.Log("OptimizePage", "InitializeComponent done, getting ViewModel...");
+
+            // PageUp/PageDown fast-scroll + Home/End jump for the overview scroller (issue #581).
+            PageScrollHelper.Attach(this, OverviewScrollView);
             ViewModel = App.Services.GetRequiredService<OptimizeViewModel>();
             ViewModel.PropertyChanged += OnViewModelPropertyChanged;
             UpdateBreadcrumbMenuItems();

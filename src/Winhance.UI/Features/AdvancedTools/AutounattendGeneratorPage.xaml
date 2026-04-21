@@ -7,7 +7,7 @@
     x:DefaultBindMode="OneWay"
     NavigationCacheMode="Disabled">
 
-    <ScrollView Padding="0,12,0,12">
+    <ScrollView x:Name="PageScrollView" Padding="0,12,0,12">
         <!-- Wrap StackPanel in Grid to avoid visual glitches with MaxWidth -->
         <Grid>
         <StackPanel Spacing="8" MaxWidth="{StaticResource SettingsContentMaxWidth}" Margin="{StaticResource SettingsContentMargin}" HorizontalAlignment="Stretch">

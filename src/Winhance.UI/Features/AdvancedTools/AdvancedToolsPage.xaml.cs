@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using Winhance.UI.Features.AdvancedTools.ViewModels;
+using Winhance.UI.Features.Common.Helpers;
 
 namespace Winhance.UI.Features.AdvancedTools;
 
@@ -26,6 +27,9 @@ public sealed partial class AdvancedToolsPage : Page
         ViewModel = App.Services.GetRequiredService<AdvancedToolsViewModel>();
         ViewModel.PropertyChanged += OnViewModelPropertyChanged;
         UpdateBreadcrumbMenuItems();
+
+        // PageUp/PageDown fast-scroll + Home/End jump for the overview scroller (issue #581).
+        PageScrollHelper.Attach(this, OverviewScrollView);
     }
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)

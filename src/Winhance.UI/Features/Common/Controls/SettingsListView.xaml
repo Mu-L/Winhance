@@ -31,7 +31,7 @@
             VerticalAlignment="Center"/>
 
         <!-- Main Content -->
-        <ScrollView Visibility="{x:Bind IsNotLoading, Mode=OneWay}">
+        <ScrollView x:Name="ContentScrollView" Visibility="{x:Bind IsNotLoading, Mode=OneWay}">
             <!-- Wrap StackPanel in Grid to avoid visual glitches with MaxWidth -->
             <Grid>
                 <StackPanel Spacing="{StaticResource SettingsCardSpacing}" MaxWidth="{StaticResource SettingsContentMaxWidth}" Margin="{StaticResource SettingsContentMargin}" HorizontalAlignment="Stretch" Padding="0,12,0,24">
